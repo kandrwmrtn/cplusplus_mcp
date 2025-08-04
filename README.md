@@ -177,7 +177,7 @@ The server behavior can be configured via `cpp-analyzer-config.json`:
 
 MIT License
 
-Copyright (c) 2024
+Copyright (c) 2025 Chickenrikke
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
