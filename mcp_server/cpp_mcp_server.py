@@ -364,19 +364,31 @@ class CppAnalyzer:
         """Check for file changes and re-parse if needed"""
         modified_files = []
         
-        # Check all currently tracked files
+        # Check all currently tracked files for modifications
         for file_path_str in list(self.translation_units.keys()):
             file_path = Path(file_path_str)
-            if self._is_file_modified(file_path):
+            if file_path.exists() and self._is_file_modified(file_path):
                 modified_files.append(file_path)
+            elif not file_path.exists():
+                # File was deleted, remove from indexes
+                del self.translation_units[file_path_str]
+                del self.file_timestamps[file_path_str]
         
-        # Check for new files
-        cpp_extensions = {'.cpp', '.cc', '.cxx', '.c++', '.h', '.hpp', '.hxx', '.h++'}
-        for ext in cpp_extensions:
-            for file_path in self.project_root.rglob(f"*{ext}"):
-                if (self._should_include_file(file_path) and 
-                    str(file_path) not in self.translation_units):
-                    modified_files.append(file_path)
+        # Use the file scanner to find all current C++ files
+        from .file_scanner import FileScanner
+        scanner = FileScanner(self.project_root, include_dependencies=True)
+        scanner.EXCLUDE_DIRS = self.exclude_dirs
+        scanner.DEPENDENCY_DIRS = self.dependency_dirs
+        
+        current_files = set(scanner.find_cpp_files())
+        tracked_files = set(self.translation_units.keys())
+        
+        # Find new files
+        new_files = current_files - tracked_files
+        for file_path_str in new_files:
+            file_path = Path(file_path_str)
+            if self._should_include_file(file_path):
+                modified_files.append(file_path)
         
         if modified_files:
             print(f"Detected {len(modified_files)} modified/new files, re-parsing...", file=sys.stderr)
