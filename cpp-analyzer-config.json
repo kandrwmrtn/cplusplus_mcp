@@ -1,0 +1,39 @@
+{
+  "exclude_directories": [
+    ".git",
+    ".svn",
+    ".hg",
+    "node_modules",
+    "__pycache__",
+    ".pytest_cache",
+    ".vs",
+    ".vscode",
+    ".idea",
+    "CMakeFiles",
+    "CMakeCache.txt",
+    "RepoExamples",
+    "Intermediate",
+    "Binaries",
+    "DerivedDataCache",
+    "Saved",
+    "Build",
+    "cmake-build-windows-vcpkg"
+  ],
+  "exclude_patterns": [
+    "*.generated.h",
+    "*.generated.cpp",
+    "*_test.cpp"
+  ],
+  "dependency_directories": [
+    "vcpkg_installed",
+    "third_party",
+    "ThirdParty",
+    "thirdpary",
+    "external",
+    "External",
+    "dependencies"
+  ],
+  "include_dependencies": true,
+  "max_file_size_mb": 10,
+  "_comment": "This configuration applies to all C++ projects analyzed by this MCP server"
+}

@@ -1,0 +1,12 @@
+# Virtual environment
+mcp_env/
+
+# MCP cache contents (but keep the folder)
+.mcp_cache/*
+!.mcp_cache/.gitkeep
+
+# Downloaded libclang binaries
+lib/windows/libclang.dll
+lib/macos/libclang.dylib
+lib/linux/libclang.so
+lib/linux/libclang.so.1
