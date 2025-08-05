@@ -163,6 +163,17 @@ class CacheManager:
         except:
             return None
     
+    def remove_file_cache(self, file_path: str) -> bool:
+        """Remove cached data for a deleted file"""
+        try:
+            cache_file = self.get_file_cache_path(file_path)
+            if cache_file.exists():
+                cache_file.unlink()
+                return True
+            return False
+        except:
+            return False
+    
     def save_progress(self, total_files: int, indexed_files: int, 
                      failed_files: int, cache_hits: int,
                      last_index_time: float, class_count: int, 

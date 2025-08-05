@@ -583,20 +583,94 @@ class CppAnalyzer:
             }
     
     def refresh_if_needed(self) -> int:
-        """Refresh index for changed files"""
+        """Refresh index for changed files and remove deleted files"""
         refreshed = 0
+        deleted = 0
         
+        # Get currently existing files
+        current_files = set(self._find_cpp_files(self.include_dependencies))
+        tracked_files = set(self.file_hashes.keys())
+        
+        # Find deleted files
+        deleted_files = tracked_files - current_files
+        
+        # Remove deleted files from all indexes
+        for file_path in deleted_files:
+            self._remove_file_from_indexes(file_path)
+            # Remove from tracking
+            if file_path in self.file_hashes:
+                del self.file_hashes[file_path]
+            if file_path in self.translation_units:
+                del self.translation_units[file_path]
+            # Clean up per-file cache
+            self.cache_manager.remove_file_cache(file_path)
+            deleted += 1
+        
+        # Check existing tracked files for modifications
         for file_path in list(self.file_hashes.keys()):
+            if not os.path.exists(file_path):
+                continue  # Skip files that no longer exist (should have been caught above)
+                
             current_hash = self._get_file_hash(file_path)
             if current_hash != self.file_hashes.get(file_path):
                 success, _ = self.index_file(file_path, force=True)
                 if success:
                     refreshed += 1
         
-        if refreshed > 0:
+        # Check for new files
+        new_files = current_files - tracked_files
+        for file_path in new_files:
+            success, _ = self.index_file(file_path, force=False)
+            if success:
+                refreshed += 1
+        
+        if refreshed > 0 or deleted > 0:
             self._save_cache()
+            if deleted > 0:
+                print(f"Removed {deleted} deleted files from indexes", file=sys.stderr)
         
         return refreshed
+    
+    def _remove_file_from_indexes(self, file_path: str):
+        """Remove all symbols from a deleted file from all indexes"""
+        with self.index_lock:
+            # Get all symbols that were in this file
+            symbols_to_remove = self.file_index.get(file_path, [])
+            
+            # Remove from class_index
+            for symbol in symbols_to_remove:
+                if symbol.kind in ("class", "struct"):
+                    if symbol.name in self.class_index:
+                        self.class_index[symbol.name] = [
+                            info for info in self.class_index[symbol.name] 
+                            if info.file != file_path
+                        ]
+                        # Remove empty entries
+                        if not self.class_index[symbol.name]:
+                            del self.class_index[symbol.name]
+                
+                # Remove from function_index
+                elif symbol.kind in ("function", "method"):
+                    if symbol.name in self.function_index:
+                        self.function_index[symbol.name] = [
+                            info for info in self.function_index[symbol.name] 
+                            if info.file != file_path
+                        ]
+                        # Remove empty entries
+                        if not self.function_index[symbol.name]:
+                            del self.function_index[symbol.name]
+                
+                # Remove from usr_index
+                if symbol.usr and symbol.usr in self.usr_index:
+                    del self.usr_index[symbol.usr]
+                
+                # Remove from call graph
+                if symbol.usr:
+                    self.call_graph_analyzer.remove_symbol(symbol.usr)
+            
+            # Remove from file_index
+            if file_path in self.file_index:
+                del self.file_index[file_path]
     
     def get_class_info(self, class_name: str) -> Optional[Dict[str, Any]]:
         """Get detailed information about a specific class"""

@@ -24,6 +24,28 @@ class CallGraphAnalyzer:
         self.call_graph.clear()
         self.reverse_call_graph.clear()
     
+    def remove_symbol(self, usr: str):
+        """Remove a symbol from the call graph completely"""
+        if usr in self.call_graph:
+            # Remove all calls made by this function
+            called_functions = self.call_graph[usr].copy()
+            for called_usr in called_functions:
+                self.reverse_call_graph[called_usr].discard(usr)
+                # Clean up empty sets
+                if not self.reverse_call_graph[called_usr]:
+                    del self.reverse_call_graph[called_usr]
+            del self.call_graph[usr]
+        
+        if usr in self.reverse_call_graph:
+            # Remove all calls to this function
+            calling_functions = self.reverse_call_graph[usr].copy()
+            for caller_usr in calling_functions:
+                self.call_graph[caller_usr].discard(usr)
+                # Clean up empty sets
+                if not self.call_graph[caller_usr]:
+                    del self.call_graph[caller_usr]
+            del self.reverse_call_graph[usr]
+    
     def rebuild_from_symbols(self, symbols: List[SymbolInfo]):
         """Rebuild call graph from symbol list"""
         self.clear()

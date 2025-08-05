@@ -370,7 +370,8 @@ class CppAnalyzer:
             if file_path.exists() and self._is_file_modified(file_path):
                 modified_files.append(file_path)
             elif not file_path.exists():
-                # File was deleted, remove from indexes
+                # File was deleted, remove from all indexes
+                self._remove_file_from_indexes(file_path_str)
                 del self.translation_units[file_path_str]
                 del self.file_timestamps[file_path_str]
         
@@ -396,6 +397,29 @@ class CppAnalyzer:
                 self._parse_file(file_path)  # Indexes updated during parsing
         
         return len(modified_files)
+    
+    def _remove_file_from_indexes(self, file_path: str):
+        """Remove all symbols from a deleted file from search indexes"""
+        with self.parse_lock:
+            # Remove from class_index
+            for class_name in list(self.class_index.keys()):
+                self.class_index[class_name] = [
+                    info for info in self.class_index[class_name] 
+                    if info.get('file') != file_path
+                ]
+                # Remove empty entries
+                if not self.class_index[class_name]:
+                    del self.class_index[class_name]
+            
+            # Remove from function_index
+            for func_name in list(self.function_index.keys()):
+                self.function_index[func_name] = [
+                    info for info in self.function_index[func_name] 
+                    if info.get('file') != file_path
+                ]
+                # Remove empty entries
+                if not self.function_index[func_name]:
+                    del self.function_index[func_name]
     
     def _build_indexes(self):
         """Build search indexes for fast lookups (multithreaded)"""
