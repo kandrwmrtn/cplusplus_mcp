@@ -125,6 +125,28 @@ To use this MCP server inside the OpenAI Codex CLI:
 
 If you keep the `.mcp.json` file inside this repository you can also add a `"cwd": "YOUR_REPO_PATH"` entry so Codex launches the server from the correct directory.
 
+## Configuring Visual Studio Code
+1. Create a new file in the project directory, called ```bash .vscode/mcp.json``` , with the following content:
+
+   ```json
+   {
+     "servers": {
+       "cpp-analyzer": {
+      	"command": "YOUR_REPO_PATH/run_mcp_server.sh",
+      	"args": [],
+      	"cwd": "YOUR_REPO_PATH",      
+       }
+     }
+   }
+
+   ```
+   
+2. Then, ask the agent to set your project directory using the MCP tool:
+   ```
+   "Use the cpp-analyzer tool to set the project directory to /home/myself_user/path/to/spp/project"
+   ```
+
+
 ## Usage with Claude
 
 Once configured, you can use the C++ analyzer in your conversations with Claude:

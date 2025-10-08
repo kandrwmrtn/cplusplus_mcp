@@ -34,6 +34,34 @@ from mcp.types import (
     TextContent,
 )
 
+
+import glob
+import re
+import os
+import os.path
+
+
+def _find_latest_linux_libclang( glob_search_path= "/usr/lib/llvm-*/"):
+    """ Returns the path of the latest installed libclang in Linux. 
+        Thaat is, the one with the highest version number.
+        Returns None in case nothing was found. """
+    pattern = os.path.join(glob_search_path,"libclang-*.so.1")
+    candidates = glob.glob(pattern)
+
+    newest_version = -1
+    path_newest_lib = None
+
+    for path in candidates:
+        match = re.search(r"libclang-(\d+)\.so\.1$", os.path.basename(path))
+        if match:
+            version = int(match.group(1))
+            if version > newest_version:
+                newest_version = version
+                path_newest_lib = path
+
+    return path_newest_lib
+
+
 def find_and_configure_libclang():
     """Find and configure libclang library"""
     import platform
@@ -125,13 +153,18 @@ def find_and_configure_libclang():
             "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/libclang.dylib",
         ]
     
-    else:  # Linux
+    else:  # Linux                    
         system_paths = [
             "/usr/lib/llvm-*/lib/libclang.so.1",
             "/usr/lib/x86_64-linux-gnu/libclang-*.so.1",
             "/usr/lib/libclang.so.1",
             "/usr/lib/libclang.so",
         ]
+
+        # Inserts the path of the latest version of libclang in first position.
+        path_latest_lib= _find_latest_linux_libclang( "/usr/lib/llvm-*/lib/")
+        if path_latest_lib is not None:
+            system_paths.insert(0, path_latest_lib)
     
     # Try each system path
     for path_pattern in system_paths:
@@ -695,7 +728,7 @@ class CppAnalyzer:
                     self.function_index[name] = []
                 self.function_index[name].extend(entries)
     
-    def _ensure_initialized(self):
+    def _ensure_initialized(self):     
         """Ensure the analyzer is initialized (lazy loading to avoid timeouts)"""
         if not self.initialization_complete:
             if not self.initialization_started:
@@ -756,7 +789,7 @@ class CppAnalyzer:
         return results
     
     def get_class_info(self, class_name: str) -> Optional[Dict[str, Any]]:
-        """Get detailed information about a specific class"""
+        """Get detailed information about a specific class"""        
         for file_path, tu in self.translation_units.items():
             for cursor in tu.cursor.walk_preorder():
                 if (cursor.kind in [CursorKind.CLASS_DECL, CursorKind.STRUCT_DECL] 
@@ -1255,7 +1288,8 @@ analyzer = None
 analyzer_initialized = False
 
 # MCP Server
-server = Server("cpp-analyzer")
+server = Server("cpp-analyzer", 
+                instructions="Give priority to the cpp-analyzer tools before searching directly in the C++ source files.")
 
 @server.list_tools()
 async def list_tools() -> List[Tool]:

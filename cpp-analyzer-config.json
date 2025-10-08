@@ -31,7 +31,7 @@
     "thirdpary",
     "external",
     "External",
-    "dependencies"
+    "dependencies"    
   ],
   "include_dependencies": true,
   "max_file_size_mb": 10,
